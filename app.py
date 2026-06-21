@@ -1,63 +1,30 @@
 import streamlit as st
-import openai
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
 
-# API Key
-openai.api_key = "tumhari-api-key-yahan"
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Page Title
-st.title("🤖 Cold Email Generator")
-st.subheader("AI se perfect cold email banao!")
+st.set_page_config(page_title="Cold Email Generator", page_icon="✉️")
+st.title("✉️ Cold Email Generator")
 
-# Input Fields
-your_name = st.text_input("Tumhara Naam")
-your_skill = st.text_input("Tumhari Service/Skill", 
-             placeholder="e.g. AI Chatbot Development")
-company_name = st.text_input("Company Ka Naam")
-company_about = st.text_area("Company Ke Baare Mein", 
-                placeholder="Company kya karti hai?")
-tone = st.selectbox("Email Ka Tone", 
-       ["Professional", "Friendly", "Formal"])
+sender_name = st.text_input("Your Name")
+company     = st.text_input("Target Company")
+college     = st.text_input("your college")
+offer       = st.text_input("What you offer")
+tone        = st.selectbox("Tone", ["Professional", "Friendly", "Persuasive"])
 
-# Generate Button
-if st.button("✉️ Email Generate Karo"):
-    
-    if not all([your_name, your_skill, 
-                company_name, company_about]):
-        st.warning("Sabhi fields bharein!")
+if st.button("Generate Email", type="primary"):
+    if not all([sender_name, company, college, offer]):
+        st.error("Please fill all fields!")
     else:
-        with st.spinner("AI email likh raha hai..."):
-            
-            prompt = f"""
-            Write a cold email for internship/work.
-            
-            Sender: {your_name}
-            Skill/Service: {your_skill}
-            Company: {company_name}
-            About Company: {company_about}
-            Tone: {tone}
-            
-            Rules:
-            - Short (max 150 words)
-            - Personalized to the company
-            - Clear call to action
-            - Professional subject line included
-            - Do not use generic phrases
-            """
-            
-            response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", 
-                     "content": "You are an expert cold email writer."},
-                    {"role": "user", 
-                     "content": prompt}
-                ]
-            )
-            
-            email = response.choices[0].message.content
-            
-            st.success("Email Ready! ✅")
-            st.text_area("Tumhari Cold Email:", 
-                         email, height=300)
-            st.download_button("📥 Download Email", 
-                               email, "cold_email.txt")
+        with st.spinner("Writing your email..."):
+            try:
+                model  = genai.GenerativeModel("gemini-2.5-flash")
+                prompt = f"Write a {tone} cold email. Sender: {sender_name},  College: {college}, Offer: {offer}. Include subject line and a clear CTA. Keep it under 8 lines."
+                result = model.generate_content(prompt).text
+                st.success("Done!")
+                st.text_area("Your Email", value=result, height=300)
+            except Exception as e:
+                st.error(f"Error: {e}")
